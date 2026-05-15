@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
 import { LogIn } from 'lucide-react';
 
-import logo from '../assets/logo.jpg';
+import logo from '../assets/Logo.svg';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -19,7 +19,7 @@ const Login = () => {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('role', response.data.role);
       localStorage.setItem('username', response.data.username);
-      
+
       if (response.data.role === 'Admin') {
         navigate('/admin');
       } else {
@@ -38,27 +38,27 @@ const Login = () => {
           <h2>Welcome Back</h2>
           <p style={{ color: 'var(--text-muted)' }}>Login to manage attendance</p>
         </div>
-        
+
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Username</label>
-            <input 
-              type="text" 
-              className="input-field" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-              required 
+            <input
+              type="text"
+              className="input-field"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
               placeholder="Enter username"
             />
           </div>
           <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Password</label>
-            <input 
-              type="password" 
-              className="input-field" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
+            <input
+              type="password"
+              className="input-field"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               placeholder="••••••••"
             />
           </div>

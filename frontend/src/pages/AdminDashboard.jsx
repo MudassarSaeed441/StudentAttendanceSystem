@@ -6,7 +6,7 @@ import StudentManager from '../components/StudentManager';
 import TeacherManager from '../components/TeacherManager';
 import ClassManager from '../components/ClassManager';
 
-import logo from '../assets/logo.jpg';
+import logo from '../assets/Logo.svg';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -39,7 +39,7 @@ const AdminDashboard = () => {
           <h2 style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>Attendance</h2>
           <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Admin Portal</p>
         </div>
-        
+
         <button onClick={() => setActiveTab('overview')} className={`nav-link btn-link ${activeTab === 'overview' ? 'active' : ''}`} style={{ border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}>
           <LayoutDashboard size={20} /> Overview
         </button>
@@ -52,7 +52,7 @@ const AdminDashboard = () => {
         <button onClick={() => setActiveTab('classes')} className={`nav-link btn-link ${activeTab === 'classes' ? 'active' : ''}`} style={{ border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}>
           <BookOpen size={20} /> Classes
         </button>
-        
+
         <button onClick={handleLogout} className="nav-link" style={{ marginTop: 'auto', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' }}>
           <LogOut size={20} /> Logout
         </button>

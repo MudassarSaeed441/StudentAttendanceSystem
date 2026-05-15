@@ -3,13 +3,13 @@ import { teacherService } from '../services/api';
 import { LogOut, CheckCircle, XCircle, Save, ArrowLeft, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-import logo from '../assets/logo.jpg';
+import logo from '../assets/Logo.svg';
 
 const TeacherDashboard = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
   const [students, setStudents] = useState([]);
-  const [attendance, setAttendance] = useState({}); 
+  const [attendance, setAttendance] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,7 +30,7 @@ const TeacherDashboard = () => {
       setSelectedClass(cls);
       const res = await teacherService.getClassStudents(cls.id);
       setStudents(res.data);
-      
+
       const initial = {};
       res.data.forEach(s => initial[s.id] = true);
       setAttendance(initial);
@@ -49,7 +49,7 @@ const TeacherDashboard = () => {
         studentId: parseInt(id),
         isPresent: attendance[id]
       }));
-      
+
       await teacherService.markAttendance({ classId: selectedClass.id, records });
       alert('Attendance saved successfully!');
       setSelectedClass(null);
@@ -92,10 +92,10 @@ const TeacherDashboard = () => {
               </div>
             ) : (
               classes.map(c => (
-                <div 
-                  key={c.id} 
-                  className="glass-card" 
-                  style={{ cursor: 'pointer', transition: 'all 0.2s', border: '1px solid var(--border)' }} 
+                <div
+                  key={c.id}
+                  className="glass-card"
+                  style={{ cursor: 'pointer', transition: 'all 0.2s', border: '1px solid var(--border)' }}
                   onClick={() => handleSelectClass(c)}
                   onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
                   onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
@@ -121,7 +121,7 @@ const TeacherDashboard = () => {
               <ArrowLeft size={18} /> Back
             </button>
           </div>
-          
+
           <div style={{ overflowX: 'auto' }}>
             <table>
               <thead>
@@ -152,7 +152,7 @@ const TeacherDashboard = () => {
               </tbody>
             </table>
           </div>
-          
+
           <div style={{ marginTop: '2.5rem', textAlign: 'right', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
             <button onClick={handleSubmit} className="btn btn-primary" style={{ padding: '0.8rem 2rem' }}>
               <Save size={20} /> Submit Attendance
