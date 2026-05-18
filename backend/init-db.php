@@ -156,13 +156,12 @@ try {
 
     if (!$adminExists) {
         $username = 'admin';
-        // Match EF Core seeding: BCrypt hash of "admin123"
-        $passwordHash = password_hash('admin123', PASSWORD_BCRYPT);
+        $passwordHash = password_hash('Yousaf@4321@1', PASSWORD_BCRYPT);
         $role = 0; // Admin Role
 
         $stmt = $pdo->prepare('INSERT INTO "Users" ("Username", "PasswordHash", "Role") VALUES (?, ?, ?)');
         $stmt->execute([$username, $passwordHash, $role]);
-        echo "[INFO] Seeded default Admin user: username = 'admin', password = 'admin123'\n";
+        echo "[INFO] Seeded default Admin user: username = 'admin', password = 'Yousaf@4321@1'\n";
     } else {
         echo "[INFO] Admin user already exists. Skipping database seeding.\n";
     }

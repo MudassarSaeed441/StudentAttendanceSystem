@@ -80,5 +80,5 @@ Once seeded, you can login using the following accounts:
 
 * **Administrator Account:**
   * **Username:** `admin`
-  * **Password:** `admin123`
+  * **Password:** `Yousaf@4321@1`
   * **Role:** Admin (Can manage students, teachers, classes, and assign enrollments)
