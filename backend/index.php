@@ -142,13 +142,14 @@ try {
     elseif ($uri === '/api/admin/students' && $method === 'GET') {
         requireRole('Admin');
         
-        $stmt = $pdo->query('SELECT "Id" AS id, "Name" AS name, "StudentCode" AS "studentCode" FROM "Students" ORDER BY "Name" ASC');
+        $stmt = $pdo->query('SELECT "Id" AS id, "Name" AS name, "StudentCode" AS "studentCode", "FatherName" AS "fatherName" FROM "Students" ORDER BY "Name" ASC');
         $students = [];
         while ($row = $stmt->fetch()) {
             $students[] = [
                 "id" => (int)$row['id'],
                 "name" => $row['name'],
-                "studentCode" => $row['studentCode']
+                "studentCode" => $row['studentCode'],
+                "fatherName" => $row['fatherName']
             ];
         }
         echo json_encode($students);
@@ -160,6 +161,7 @@ try {
         $data = getJsonPayload();
         $name = trim($data['name'] ?? '');
         $studentCode = trim($data['studentCode'] ?? '');
+        $fatherName = trim($data['fatherName'] ?? '');
 
         if (empty($name) || empty($studentCode)) {
             http_response_code(400);
@@ -167,14 +169,15 @@ try {
             exit;
         }
 
-        $stmt = $pdo->prepare('INSERT INTO "Students" ("Name", "StudentCode") VALUES (?, ?)');
-        $stmt->execute([$name, $studentCode]);
+        $stmt = $pdo->prepare('INSERT INTO "Students" ("Name", "StudentCode", "FatherName") VALUES (?, ?, ?)');
+        $stmt->execute([$name, $studentCode, $fatherName]);
         $id = $pdo->lastInsertId();
 
         echo json_encode([
             "id" => (int)$id,
             "name" => $name,
-            "studentCode" => $studentCode
+            "studentCode" => $studentCode,
+            "fatherName" => $fatherName
         ]);
         exit;
     }
@@ -185,6 +188,7 @@ try {
         $data = getJsonPayload();
         $name = trim($data['name'] ?? '');
         $studentCode = trim($data['studentCode'] ?? '');
+        $fatherName = trim($data['fatherName'] ?? '');
 
         if (empty($name) || empty($studentCode)) {
             http_response_code(400);
@@ -192,8 +196,8 @@ try {
             exit;
         }
 
-        $stmt = $pdo->prepare('UPDATE "Students" SET "Name" = ?, "StudentCode" = ? WHERE "Id" = ?');
-        $stmt->execute([$name, $studentCode, $studentId]);
+        $stmt = $pdo->prepare('UPDATE "Students" SET "Name" = ?, "StudentCode" = ?, "FatherName" = ? WHERE "Id" = ?');
+        $stmt->execute([$name, $studentCode, $fatherName, $studentId]);
         
         http_response_code(204); // No Content
         exit;
@@ -287,6 +291,46 @@ try {
         exit;
     }
 
+    elseif (preg_match('#^/api/admin/teachers/(\d+)$#', $uri, $matches) && $method === 'PUT') {
+        requireRole('Admin');
+        $teacherId = (int)$matches[1];
+        $data = getJsonPayload();
+        $name = trim($data['name'] ?? '');
+
+        if (empty($name)) {
+            http_response_code(400);
+            echo json_encode(["message" => "Name is required."]);
+            exit;
+        }
+
+        $stmt = $pdo->prepare('UPDATE "Teachers" SET "Name" = ? WHERE "Id" = ?');
+        $stmt->execute([$name, $teacherId]);
+        
+        http_response_code(204); // No Content
+        exit;
+    }
+
+    elseif (preg_match('#^/api/admin/teachers/(\d+)$#', $uri, $matches) && $method === 'DELETE') {
+        requireRole('Admin');
+        $teacherId = (int)$matches[1];
+
+        // Delete the User, which will cascade to delete the Teacher
+        $stmt = $pdo->prepare('SELECT "UserId" FROM "Teachers" WHERE "Id" = ?');
+        $stmt->execute([$teacherId]);
+        $userId = $stmt->fetchColumn();
+
+        if ($userId) {
+            $stmt = $pdo->prepare('DELETE FROM "Users" WHERE "Id" = ?');
+            $stmt->execute([$userId]);
+        } else {
+            $stmt = $pdo->prepare('DELETE FROM "Teachers" WHERE "Id" = ?');
+            $stmt->execute([$teacherId]);
+        }
+        
+        http_response_code(204); // No Content
+        exit;
+    }
+
     // ----------------------------------------------------------------
     // Route D: Admin Classes
     // ----------------------------------------------------------------
@@ -353,6 +397,27 @@ try {
         exit;
     }
 
+    elseif (preg_match('#^/api/admin/classes/(\d+)$#', $uri, $matches) && $method === 'PUT') {
+        requireRole('Admin');
+        $classId = (int)$matches[1];
+        $data = getJsonPayload();
+        $name = trim($data['name'] ?? '');
+        $classCode = trim($data['classCode'] ?? '');
+        $teacherId = (int)($data['teacherId'] ?? 0);
+
+        if (empty($name) || empty($classCode) || $teacherId <= 0) {
+            http_response_code(400);
+            echo json_encode(["message" => "Class Name, Unique Code, and Assigned Teacher are required."]);
+            exit;
+        }
+
+        $stmt = $pdo->prepare('UPDATE "Classes" SET "Name" = ?, "ClassCode" = ?, "TeacherId" = ? WHERE "Id" = ?');
+        $stmt->execute([$name, $classCode, $teacherId, $classId]);
+        
+        http_response_code(204); // No Content
+        exit;
+    }
+
     // ----------------------------------------------------------------
     // Route E: Admin Enrollments
     // ----------------------------------------------------------------
@@ -384,22 +449,83 @@ try {
     elseif ($uri === '/api/admin/stats' && $method === 'GET') {
         requireRole('Admin');
         
+        $config = require __DIR__ . '/config.php';
+        $driver = $config['driver'] ?? 'mysql';
+        
         $studentsCount = (int)$pdo->query('SELECT COUNT(*) FROM "Students"')->fetchColumn();
         $teachersCount = (int)$pdo->query('SELECT COUNT(*) FROM "Teachers"')->fetchColumn();
         $classesCount = (int)$pdo->query('SELECT COUNT(*) FROM "Classes"')->fetchColumn();
         
         $today = date('Y-m-d');
-        // CAST("Date" AS DATE) is SQL standard for cross-database date comparisons
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM "Attendances" WHERE CAST("Date" AS DATE) = ?');
+        
+        $presentSql = ($driver === 'pgsql') ? 'TRUE' : '1';
+        $absentSql = ($driver === 'pgsql') ? 'FALSE' : '0';
+        
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM "Attendances" WHERE CAST("Date" AS DATE) = ? AND "IsPresent" = ' . $presentSql);
         $stmt->execute([$today]);
-        $attendanceTodayCount = (int)$stmt->fetchColumn();
+        $presentTodayCount = (int)$stmt->fetchColumn();
+
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM "Attendances" WHERE CAST("Date" AS DATE) = ? AND "IsPresent" = ' . $absentSql);
+        $stmt->execute([$today]);
+        $absentTodayCount = (int)$stmt->fetchColumn();
 
         echo json_encode([
             "students" => $studentsCount,
             "teachers" => $teachersCount,
             "classes" => $classesCount,
-            "attendanceToday" => $attendanceTodayCount
+            "presentToday" => $presentTodayCount,
+            "absentToday" => $absentTodayCount
         ]);
+        exit;
+    }
+
+    // ----------------------------------------------------------------
+    // Route: Admin Today Attendance Lists
+    // ----------------------------------------------------------------
+    elseif ($uri === '/api/admin/today-attendance' && $method === 'GET') {
+        requireRole('Admin');
+        $status = $_GET['status'] ?? 'present'; // 'present' or 'absent'
+        $today = date('Y-m-d');
+        
+        $config = require __DIR__ . '/config.php';
+        $driver = $config['driver'] ?? 'mysql';
+        
+        $isPresentVal = ($status === 'present');
+        if ($driver === 'pgsql') {
+            $isPresentSql = $isPresentVal ? 'TRUE' : 'FALSE';
+        } else {
+            $isPresentSql = $isPresentVal ? '1' : '0';
+        }
+        
+        $query = '
+            SELECT 
+                s."Id" AS "studentId",
+                s."Name" AS "studentName",
+                s."FatherName" AS "fatherName",
+                s."StudentCode" AS "studentCode",
+                c."Name" AS "className"
+            FROM "Attendances" a
+            JOIN "Students" s ON a."StudentId" = s."Id"
+            JOIN "Classes" c ON a."ClassId" = c."Id"
+            WHERE CAST(a."Date" AS DATE) = ? AND a."IsPresent" = ' . $isPresentSql . '
+            ORDER BY s."Name" ASC
+        ';
+        
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$today]);
+        
+        $list = [];
+        while ($row = $stmt->fetch()) {
+            $list[] = [
+                "studentId" => (int)$row['studentId'],
+                "studentName" => $row['studentName'],
+                "fatherName" => $row['fatherName'] ?? '',
+                "studentCode" => $row['studentCode'],
+                "className" => $row['className']
+            ];
+        }
+        
+        echo json_encode($list);
         exit;
     }
 
@@ -447,7 +573,7 @@ try {
 
         // Fetch enrolled students
         $stmt = $pdo->prepare('
-            SELECT s."Id" AS id, s."Name" AS name, s."StudentCode" AS "studentCode" 
+            SELECT s."Id" AS id, s."Name" AS name, s."StudentCode" AS "studentCode", s."FatherName" AS "fatherName"
             FROM "Enrollments" e
             JOIN "Students" s ON e."StudentId" = s."Id"
             WHERE e."ClassId" = ?
@@ -460,11 +586,46 @@ try {
             $students[] = [
                 "id" => (int)$row['id'],
                 "name" => $row['name'],
-                "studentCode" => $row['studentCode']
+                "studentCode" => $row['studentCode'],
+                "fatherName" => $row['fatherName']
             ];
         }
         
         echo json_encode($students);
+        exit;
+    }
+
+    // ----------------------------------------------------------------
+    // Route: Teacher Class Attendance Today
+    // ----------------------------------------------------------------
+    elseif (preg_match('#^/api/teacher/class-attendance/(\d+)$#', $uri, $matches) && $method === 'GET') {
+        requireRole('Teacher');
+        $classId = (int)$matches[1];
+        $today = date('Y-m-d');
+
+        $stmt = $pdo->prepare('SELECT "StudentId", "IsPresent", "Date" FROM "Attendances" WHERE "ClassId" = ? AND CAST("Date" AS DATE) = ?');
+        $stmt->execute([$classId, $today]);
+        
+        $records = [];
+        $firstMarked = null;
+        
+        while ($row = $stmt->fetch()) {
+            $records[(int)$row['StudentId']] = (bool)$row['IsPresent'];
+            if ($firstMarked === null || strtotime($row['Date']) < strtotime($firstMarked)) {
+                $firstMarked = $row['Date'];
+            }
+        }
+        
+        $isLocked = false;
+        if ($firstMarked) {
+            $isLocked = (time() - strtotime($firstMarked)) > 3600;
+        }
+
+        echo json_encode([
+            "records" => $records,
+            "isLocked" => $isLocked,
+            "firstMarked" => $firstMarked
+        ]);
         exit;
     }
 
@@ -486,6 +647,22 @@ try {
         $today = date('Y-m-d');
         $pdo->beginTransaction();
         try {
+            // Check if locked
+            $stmt = $pdo->prepare('SELECT MIN("Date") FROM "Attendances" WHERE "ClassId" = ? AND CAST("Date" AS DATE) = ?');
+            $stmt->execute([$classId, $today]);
+            $firstMarked = $stmt->fetchColumn();
+
+            $dateTimeString = date('Y-m-d H:i:s');
+            if ($firstMarked) {
+                if (time() - strtotime($firstMarked) > 3600) {
+                    $pdo->rollBack();
+                    http_response_code(403);
+                    echo json_encode(["message" => "Attendance is locked. It has been over an hour since it was first marked."]);
+                    exit;
+                }
+                $dateTimeString = $firstMarked; // preserve original time
+            }
+
             // 1. Remove today's existing records for the class to allow updates/corrections
             $stmt = $pdo->prepare('DELETE FROM "Attendances" WHERE "ClassId" = ? AND CAST("Date" AS DATE) = ?');
             $stmt->execute([$classId, $today]);
@@ -493,7 +670,6 @@ try {
             // 2. Insert the new records
             $stmt = $pdo->prepare('INSERT INTO "Attendances" ("ClassId", "StudentId", "Date", "IsPresent") VALUES (?, ?, ?, ?)');
             
-            $dateTimeString = date('Y-m-d H:i:s');
             foreach ($records as $record) {
                 $studentId = (int)$record['studentId'];
                 $isPresent = $record['isPresent'] ? 1 : 0;
@@ -520,6 +696,51 @@ try {
             "message" => "Student Attendance System API is running.",
             "version" => "1.0.0"
         ]);
+        exit;
+    }
+
+    // ----------------------------------------------------------------
+    // Route L: Admin Reports
+    // ----------------------------------------------------------------
+    elseif ($uri === '/api/admin/reports' && $method === 'GET') {
+        requireRole('Admin');
+        $filter = $_GET['filter'] ?? 'daily';
+        
+        $startDate = date('Y-m-d');
+        if ($filter === 'weekly') {
+            $startDate = date('Y-m-d', strtotime('-7 days'));
+        } elseif ($filter === 'monthly') {
+            $startDate = date('Y-m-d', strtotime('-90 days')); // up to 3 months
+        }
+        
+        $query = '
+            SELECT 
+                CAST(a."Date" AS DATE) AS "dateStr", 
+                c."Name" AS "className", 
+                s."Name" AS "studentName",
+                s."FatherName" AS "fatherName",
+                a."IsPresent"
+            FROM "Attendances" a
+            JOIN "Classes" c ON a."ClassId" = c."Id"
+            JOIN "Students" s ON a."StudentId" = s."Id"
+            WHERE CAST(a."Date" AS DATE) >= ?
+            ORDER BY a."Date" DESC, c."Name" ASC, s."Name" ASC
+        ';
+        $stmt = $pdo->prepare($query);
+        $stmt->execute([$startDate]);
+        
+        $reports = [];
+        while ($row = $stmt->fetch()) {
+            $reports[] = [
+                'date' => $row['dateStr'],
+                'className' => $row['className'],
+                'studentName' => $row['studentName'],
+                'fatherName' => $row['fatherName'],
+                'status' => $row['IsPresent'] ? 'Present' : 'Absent'
+            ];
+        }
+        
+        echo json_encode($reports);
         exit;
     }
 

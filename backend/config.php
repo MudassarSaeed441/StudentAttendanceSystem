@@ -3,35 +3,35 @@
  * Student Attendance System - Configuration
  * Supports PostgreSQL, MySQL, and SQLite drivers.
  *
- * ACTIVE:   MySQL (Hostinger)
- * FALLBACK: PostgreSQL (Supabase) — commented out below
+ * ACTIVE:   PostgreSQL (Supabase) — local development
+ * SWITCH:   Uncomment MySQL block below before deploying to Hostinger
  */
 
 return [
     // ---------------------------------------------------------------
-    // ACTIVE: MySQL for Hostinger
-    // Replace the values below with your Hostinger hPanel DB credentials
+    // ACTIVE: MySQL (XAMPP local) — for local development
     // ---------------------------------------------------------------
     'driver'   => 'mysql',
-    'host'     => 'localhost',        // Hostinger DB host (almost always 'localhost')
+    'host'     => '127.0.0.1',
     'port'     => 3306,
-    'dbname'   => 'u123456789_attendance', // Replace with your Hostinger database name
-    'username' => 'u123456789_admin',      // Replace with your Hostinger DB username
-    'password' => 'YourHostingerDbPassword', // Replace with your Hostinger DB password
+    'dbname'   => 'student_attendance',
+    'username' => 'root',
+    'password' => '', // XAMPP default: no password
 
     // ---------------------------------------------------------------
-    // FALLBACK: PostgreSQL (Supabase) — uncomment to switch back
+    // HOSTINGER: MySQL — uncomment before uploading to Hostinger
+    // ---------------------------------------------------------------
+    // 'driver'   => 'mysql',
+    // 'host'     => 'localhost',
+    // 'port'     => 3306,
+    // 'dbname'   => 'u123456789_attendance',
+    // 'username' => 'u123456789_admin',
+    // 'password' => 'YourHostingerDbPassword',
+
+    // ---------------------------------------------------------------
+    // SUPABASE: PostgreSQL — uncomment to switch to cloud DB
     // ---------------------------------------------------------------
     // 'driver'   => 'pgsql',
-    // 'host'     => 'db.bmrpgkkminjgvpttujek.supabase.co',
-    // 'port'     => 5432,
-    // 'dbname'   => 'postgres',
-    // 'username' => 'postgres',
-    // 'password' => 'fWGXn7vCS.FAbJG',
-
-    // ---------------------------------------------------------------
-    // SQLite (local development only)
-    // ---------------------------------------------------------------
     'sqlite_path' => __DIR__ . '/attendance.db',
 
     // ---------------------------------------------------------------

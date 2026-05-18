@@ -28,7 +28,8 @@ try {
             'CREATE TABLE IF NOT EXISTS "Students" (
                 "Id" INTEGER PRIMARY KEY AUTOINCREMENT,
                 "Name" TEXT NOT NULL,
-                "StudentCode" TEXT UNIQUE NOT NULL
+                "StudentCode" TEXT UNIQUE NOT NULL,
+                "FatherName" TEXT DEFAULT \'\'
             );',
             'CREATE TABLE IF NOT EXISTS "Teachers" (
                 "Id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,7 +72,8 @@ try {
             'CREATE TABLE IF NOT EXISTS "Students" (
                 "Id" SERIAL PRIMARY KEY,
                 "Name" VARCHAR(255) NOT NULL,
-                "StudentCode" VARCHAR(100) UNIQUE NOT NULL
+                "StudentCode" VARCHAR(100) UNIQUE NOT NULL,
+                "FatherName" VARCHAR(255) DEFAULT \'\'
             );',
             'CREATE TABLE IF NOT EXISTS "Teachers" (
                 "Id" SERIAL PRIMARY KEY,
@@ -108,7 +110,8 @@ try {
             'CREATE TABLE IF NOT EXISTS "Students" (
                 "Id" INT AUTO_INCREMENT PRIMARY KEY,
                 "Name" VARCHAR(255) NOT NULL,
-                "StudentCode" VARCHAR(100) UNIQUE NOT NULL
+                "StudentCode" VARCHAR(100) UNIQUE NOT NULL,
+                "FatherName" VARCHAR(255) DEFAULT \'\'
             );',
             'CREATE TABLE IF NOT EXISTS "Teachers" (
                 "Id" INT AUTO_INCREMENT PRIMARY KEY,
