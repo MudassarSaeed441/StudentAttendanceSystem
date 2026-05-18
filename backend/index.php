@@ -80,6 +80,14 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = '/' . trim($uri, '/'); // Normalize path
 $method = $_SERVER['REQUEST_METHOD'];
 
+// Strip query string subdirectory prefix so routes work whether
+// the backend lives at /api/ (subfolder) or at root /
+// e.g. /api/auth/login becomes /api/auth/login (already correct)
+// but /auth/login also becomes /api/auth/login for flat deployments
+if (!str_starts_with($uri, '/api')) {
+    $uri = '/api' . $uri;
+}
+
 $pdo = Database::getConnection();
 
 // Helper to retrieve JSON payload
@@ -504,7 +512,19 @@ try {
     }
 
     // ----------------------------------------------------------------
-    // Route J: Page Not Found (HTTP 404)
+    // Route J: API Root Health Check (returns friendly status)
+    // ----------------------------------------------------------------
+    elseif (($uri === '/api' || $uri === '/api/') && $method === 'GET') {
+        echo json_encode([
+            "status" => "ok",
+            "message" => "Student Attendance System API is running.",
+            "version" => "1.0.0"
+        ]);
+        exit;
+    }
+
+    // ----------------------------------------------------------------
+    // Route K: Page Not Found (HTTP 404)
     // ----------------------------------------------------------------
     else {
         http_response_code(404);
