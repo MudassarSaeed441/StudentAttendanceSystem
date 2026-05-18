@@ -5,6 +5,7 @@ import { Plus, Trash2, Edit, X } from 'lucide-react';
 const StudentManager = () => {
   const [students, setStudents] = useState([]);
   const [name, setName] = useState('');
+  const [fatherName, setFatherName] = useState('');
   const [code, setCode] = useState('');
   const [editingId, setEditingId] = useState(null);
 
@@ -25,9 +26,9 @@ const StudentManager = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await adminService.updateStudent(editingId, { id: editingId, name, studentCode: code });
+        await adminService.updateStudent(editingId, { id: editingId, name, studentCode: code, fatherName });
       } else {
-        await adminService.createStudent({ name, studentCode: code });
+        await adminService.createStudent({ name, studentCode: code, fatherName });
       }
       resetForm();
       fetchStudents();
@@ -38,12 +39,14 @@ const StudentManager = () => {
 
   const resetForm = () => {
     setName('');
+    setFatherName('');
     setCode('');
     setEditingId(null);
   };
 
   const handleEdit = (s) => {
     setName(s.name);
+    setFatherName(s.fatherName || '');
     setCode(s.studentCode);
     setEditingId(s.id);
   };
@@ -67,6 +70,10 @@ const StudentManager = () => {
           <input className="input-field" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Full Name" />
         </div>
         <div style={{ flex: 1 }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Father Name</label>
+          <input className="input-field" value={fatherName} onChange={(e) => setFatherName(e.target.value)} placeholder="Father's Name" />
+        </div>
+        <div style={{ flex: 1 }}>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Student Code</label>
           <input className="input-field" value={code} onChange={(e) => setCode(e.target.value)} required placeholder="STU001" />
         </div>
@@ -88,6 +95,7 @@ const StudentManager = () => {
           <thead>
             <tr>
               <th>Name</th>
+              <th>Father Name</th>
               <th>Student Code</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
@@ -101,6 +109,7 @@ const StudentManager = () => {
               students.map(s => (
                 <tr key={s.id}>
                   <td style={{ fontWeight: 500 }}>{s.name}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{s.fatherName || '-'}</td>
                   <td><span className="badge btn-outline">{s.studentCode}</span></td>
                   <td style={{ textAlign: 'right' }}>
                     <button onClick={() => handleEdit(s)} className="btn btn-outline" style={{ padding: '0.4rem', marginRight: '0.5rem' }} title="Edit">

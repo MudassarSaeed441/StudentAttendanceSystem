@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminService } from '../services/api';
-import { Plus, UserPlus, BookOpen } from 'lucide-react';
+import { Plus, UserPlus, BookOpen, Edit2, X } from 'lucide-react';
 
 const ClassManager = () => {
   const [classes, setClasses] = useState([]);
@@ -10,6 +10,7 @@ const ClassManager = () => {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [teacherId, setTeacherId] = useState('');
+  const [editingId, setEditingId] = useState(null);
   
   const [enrollStudentId, setEnrollStudentId] = useState('');
   const [enrollClassId, setEnrollClassId] = useState('');
@@ -36,12 +37,31 @@ const ClassManager = () => {
   const handleCreateClass = async (e) => {
     e.preventDefault();
     try {
-      await adminService.createClass({ name, classCode: code, teacherId: parseInt(teacherId) });
+      if (editingId) {
+        await adminService.updateClass(editingId, { name, classCode: code, teacherId: parseInt(teacherId) });
+        setEditingId(null);
+      } else {
+        await adminService.createClass({ name, classCode: code, teacherId: parseInt(teacherId) });
+      }
       setName(''); setCode(''); setTeacherId('');
       fetchData();
     } catch (err) {
-      alert('Error creating class. Class code must be unique.');
+      alert('Error saving class. Class code must be unique.');
     }
+  };
+
+  const handleEdit = (c) => {
+    setEditingId(c.id);
+    setName(c.name);
+    setCode(c.classCode);
+    setTeacherId(c.teacherId || c.teacher?.id || '');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setName('');
+    setCode('');
+    setTeacherId('');
   };
 
   const handleEnroll = async (e) => {
@@ -56,11 +76,18 @@ const ClassManager = () => {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
       <div className="glass-card">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          <Plus size={24} color="var(--primary)" />
-          <h3 style={{ margin: 0 }}>Create New Class</h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Plus size={24} color="var(--primary)" />
+            <h3 style={{ margin: 0 }}>{editingId ? 'Edit Class' : 'Create New Class'}</h3>
+          </div>
+          {editingId && (
+            <button type="button" onClick={cancelEdit} className="btn btn-outline" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+              <X size={14} /> Cancel
+            </button>
+          )}
         </div>
         <form onSubmit={handleCreateClass}>
           <div style={{ marginBottom: '1rem' }}>
@@ -78,7 +105,9 @@ const ClassManager = () => {
               {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Create Class</button>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+            {editingId ? 'Update Class' : 'Create Class'}
+          </button>
         </form>
       </div>
 
@@ -118,12 +147,13 @@ const ClassManager = () => {
                 <th>Class Name</th>
                 <th>Code</th>
                 <th>Assigned Teacher</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {classes.length === 0 ? (
                 <tr>
-                  <td colSpan="3" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No classes created yet.</td>
+                  <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>No classes created yet.</td>
                 </tr>
               ) : (
                 classes.map(c => (
@@ -133,10 +163,15 @@ const ClassManager = () => {
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--border)', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {c.teacher?.name.charAt(0)}
+                          {c.teacher?.name.charAt(0) || '?'}
                         </div>
-                        {c.teacher?.name}
+                        {c.teacher?.name || 'Unassigned'}
                       </div>
+                    </td>
+                    <td>
+                      <button onClick={() => handleEdit(c)} className="btn btn-outline" style={{ padding: '0.4rem', borderRadius: '0.3rem' }} title="Edit">
+                        <Edit2 size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))

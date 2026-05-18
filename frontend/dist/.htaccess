@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Force Apache to serve index.html (React app) over index.php
+  DirectoryIndex index.html
+
+  # Never rewrite requests going to the /api/ backend subfolder
+  RewriteRule ^api(/.*)?$ - [L]
+
+  # Don't rewrite actual existing files or directories
+  RewriteRule ^index\.html$ - [L]
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Route everything else through React's index.html
+  RewriteRule . /index.html [L]
+</IfModule>

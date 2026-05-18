@@ -10,6 +10,7 @@ const TeacherDashboard = () => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [students, setStudents] = useState([]);
   const [attendance, setAttendance] = useState({});
+  const [isLocked, setIsLocked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,11 +29,19 @@ const TeacherDashboard = () => {
   const handleSelectClass = async (cls) => {
     try {
       setSelectedClass(cls);
-      const res = await teacherService.getClassStudents(cls.id);
-      setStudents(res.data);
+      const [studentsRes, attendanceRes] = await Promise.all([
+        teacherService.getClassStudents(cls.id),
+        teacherService.getClassAttendanceToday(cls.id)
+      ]);
+      setStudents(studentsRes.data);
+      setIsLocked(attendanceRes.data.isLocked);
 
       const initial = {};
-      res.data.forEach(s => initial[s.id] = true);
+      const savedRecords = attendanceRes.data.records || {};
+      
+      studentsRes.data.forEach(s => {
+        initial[s.id] = savedRecords[s.id] !== undefined ? savedRecords[s.id] : true;
+      });
       setAttendance(initial);
     } catch (err) {
       console.error(err);
@@ -40,6 +49,7 @@ const TeacherDashboard = () => {
   };
 
   const toggleAttendance = (studentId) => {
+    if (isLocked) return;
     setAttendance(prev => ({ ...prev, [studentId]: !prev[studentId] }));
   };
 
@@ -133,8 +143,11 @@ const TeacherDashboard = () => {
               </thead>
               <tbody>
                 {students.map(s => (
-                  <tr key={s.id} onClick={() => toggleAttendance(s.id)} style={{ cursor: 'pointer' }}>
-                    <td style={{ fontWeight: 500 }}>{s.name}</td>
+                  <tr key={s.id} onClick={() => toggleAttendance(s.id)} style={{ cursor: isLocked ? 'default' : 'pointer', opacity: isLocked ? 0.8 : 1 }}>
+                    <td>
+                      <div style={{ fontWeight: 500 }}>{s.name}</div>
+                      {s.fatherName && <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>S/O {s.fatherName}</div>}
+                    </td>
                     <td><span style={{ opacity: 0.7 }}>{s.studentCode}</span></td>
                     <td style={{ textAlign: 'center' }}>
                       {attendance[s.id] ? (
@@ -153,10 +166,16 @@ const TeacherDashboard = () => {
             </table>
           </div>
 
-          <div style={{ marginTop: '2.5rem', textAlign: 'right', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
-            <button onClick={handleSubmit} className="btn btn-primary" style={{ padding: '0.8rem 2rem' }}>
-              <Save size={20} /> Submit Attendance
-            </button>
+          <div style={{ marginTop: '2.5rem', textAlign: 'right', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+            {isLocked ? (
+              <span style={{ color: 'var(--danger)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🔒 Attendance locked (1 hour passed)
+              </span>
+            ) : (
+              <button onClick={handleSubmit} className="btn btn-primary" style={{ padding: '0.8rem 2rem' }}>
+                <Save size={20} /> Submit Attendance
+              </button>
+            )}
           </div>
         </div>
       )}

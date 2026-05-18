@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://jamiarahemiatajveedulquran.online/api';
+const API_URL = 'http://jamiarahemiatajveedulquran.online/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -26,17 +26,24 @@ export const adminService = {
 
   getTeachers: () => api.get('/admin/teachers'),
   createTeacher: (teacher) => api.post('/admin/teachers', teacher),
+  updateTeacher: (id, teacher) => api.put(`/admin/teachers/${id}`, teacher),
+  deleteTeacher: (id) => api.delete(`/admin/teachers/${id}`),
 
   getClasses: () => api.get('/admin/classes'),
   createClass: (cls) => api.post('/admin/classes', cls),
+  updateClass: (id, cls) => api.put(`/admin/classes/${id}`, cls),
+  deleteClass: (id) => api.delete(`/admin/classes/${id}`),
 
   enroll: (data) => api.post('/admin/enroll', data),
   getStats: () => api.get('/admin/stats'),
+  getTodayAttendance: (status) => api.get('/admin/today-attendance', { params: { status } }),
+  getReports: (filter) => api.get('/admin/reports', { params: { filter } }),
 };
 
 export const teacherService = {
   getMyClasses: () => api.get('/teacher/my-classes'),
   getClassStudents: (classId) => api.get(`/teacher/class-students/${classId}`),
+  getClassAttendanceToday: (classId) => api.get(`/teacher/class-attendance/${classId}`),
   markAttendance: (data) => api.post('/teacher/mark-attendance', data),
 };
 
